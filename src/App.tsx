@@ -1,9 +1,50 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Car, AlertTriangle, CheckCircle, XCircle, Calculator, Search, ExternalLink, Globe } from 'lucide-react';
 
+type Lang = 'fr' | 'en' | 'pl';
+
+type EngineKey =
+  | '1.2'
+  | '0.9'
+  | '1.4'
+  | '1.2-Dualogic'
+  | '1.2-TCG'
+  | '1.3-Diesel';
+
+interface EngineInfo {
+  name: string;
+  reliability: number;
+  issues: Record<Lang, string[]>;
+  positives: Record<Lang, string[]>;
+  avgRepairCost: number;
+}
+
+interface CarData {
+  price: string;
+  mileage: string;
+  year: string;
+  engine: EngineKey;
+  beltChanged: boolean;
+  serviceHistory: boolean;
+  accidents: boolean;
+}
+
+interface Analysis {
+  score: number;
+  warnings: string[];
+  recommendations: string[];
+  priceAnalysis: string;
+  estimatedPrice: number;
+  repairBudget: number;
+  engine: EngineInfo;
+  verdict: string;
+}
+
+interface SearchLink { site: string; url: string; desc: string }
+
 const Fiat500Analyzer = () => {
-  const [language, setLanguage] = useState('fr');
-  const [carData, setCarData] = useState({
+  const [language, setLanguage] = useState<Lang>('fr');
+  const [carData, setCarData] = useState<CarData>({
     price: '',
     mileage: '',
     year: '',
@@ -13,8 +54,8 @@ const Fiat500Analyzer = () => {
     accidents: false
   });
   
-  const [analysis, setAnalysis] = useState(null);
-  const [searchResults, setSearchResults] = useState([]);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchLink[]>([]);
 
   // Translations
   const translations = {
@@ -194,7 +235,7 @@ const Fiat500Analyzer = () => {
   const t = translations[language];
 
   // Base de données des points faibles par moteur
-  const engineData = {
+  const engineData: Record<EngineKey, EngineInfo> = {
     '1.2': {
       name: '1.2 8V (69 KM)',
       reliability: 7,
@@ -503,7 +544,7 @@ const Fiat500Analyzer = () => {
     let repairBudget = 0;
     const carAge = 2024 - year;
 
-    const budgetByEngine = {
+    const budgetByEngine: Record<EngineKey, { base: number; perYear: number; perKm100k: number }> = {
       '1.2': { base: 3000, perYear: 300, perKm100k: 500 },
       '0.9': { base: 9000, perYear: 1000, perKm100k: 1200 },
       '1.4': { base: 2800, perYear: 400, perKm100k: 600 },
@@ -643,7 +684,7 @@ const Fiat500Analyzer = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">{t.engine}</label>
               <select
                 value={carData.engine}
-                onChange={(e) => setCarData({...carData, engine: e.target.value})}
+                onChange={(e) => setCarData({...carData, engine: e.target.value as EngineKey})}
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
               >
                 <option value="1.2">1.2 8V (69 KM) - {language === 'fr' ? 'Essence' : language === 'en' ? 'Petrol' : 'Benzyna'} ⭐7/10</option>
