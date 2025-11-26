@@ -379,12 +379,10 @@ const Fiat500Analyzer = () => {
       return;
     }
 
-    // Calcul du score
     let score = 100;
     let warnings = [];
     let recommendations = [];
 
-    // Pénalités kilométrage (révisées)
     if (mileage > 150000) {
       score -= 25;
       warnings.push(language === 'fr' ? 'Kilométrage TRÈS élevé - entretien critique' :
@@ -402,7 +400,6 @@ const Fiat500Analyzer = () => {
                     'Średni przebieg - zaplanować większe przeglądy');
     }
 
-    // Pénalités moteur
     if (carData.engine === '0.9') {
       score -= 25;
       warnings.push(language === 'fr' ? '⚠️ ATTENTION: Moteur TwinAir très problématique - À ÉVITER' :
@@ -410,7 +407,6 @@ const Fiat500Analyzer = () => {
                     '⚠️ UWAGA: Silnik TwinAir bardzo problematyczny - UNIKAĆ');
     }
 
-    // Pénalités année
     if (year < 2015) {
       score -= 10;
       warnings.push(language === 'fr' ? 'Ancien modèle - risque de rouille et électronique' :
@@ -418,7 +414,6 @@ const Fiat500Analyzer = () => {
                     'Stary model - ryzyko rdzy i elektroniki');
     }
 
-    // Bonus historique
     if (carData.serviceHistory) {
       score += 15;
       recommendations.push(language === 'fr' ? '✓ Historique complet - excellent point' :
@@ -431,7 +426,6 @@ const Fiat500Analyzer = () => {
                     'Brak historii - RYZYKOWNE');
     }
 
-    // Bonus courroie
     if (carData.beltChanged) {
       score += 10;
       recommendations.push(language === 'fr' ? '✓ Courroie changée - économie 2000-3000 PLN' :
@@ -444,7 +438,6 @@ const Fiat500Analyzer = () => {
                     'Pasek NIE wymieniony + wysoki przebieg - NIEBEZPIECZEŃSTWO');
     }
 
-    // Accidents
     if (carData.accidents) {
       score -= 30;
       warnings.push(language === 'fr' ? 'Accident déclaré - vérifier structure et qualité réparation' :
@@ -452,7 +445,6 @@ const Fiat500Analyzer = () => {
                     'Zgłoszony wypadek - sprawdzić strukturę i jakość naprawy');
     }
 
-    // Pénalités composées (combos critiques)
     if (carData.engine === '0.9' && mileage > 70000 && !carData.beltChanged) {
       score -= 25;
       warnings.push(language === 'fr' ? '🔴 COMBO CRITIQUE: TwinAir 0.9 + >70k + courroie non changée = TRÈS DANGEREUX' :
@@ -466,8 +458,6 @@ const Fiat500Analyzer = () => {
                     'Brak historii I bardzo wysoki przebieg - czarna skrzynka');
     }
 
-    // Estimation prix juste (recalibré 2024 marché polonais)
-    // Prix de base par année
     let basePrice;
     if (year >= 2023) basePrice = 32000;
     else if (year >= 2022) basePrice = 30000;
@@ -477,24 +467,21 @@ const Fiat500Analyzer = () => {
     else if (year >= 2010) basePrice = 18000;
     else basePrice = 14000;
 
-    // Décote kilométrage progressive (réaliste marché polonais)
     let mileageDiscount = 0;
     if (mileage <= 30000) {
-      mileageDiscount = mileage * 0.25; // 0.25 PLN/km - voiture quasi-neuve
+      mileageDiscount = mileage * 0.25;
     } else if (mileage <= 80000) {
-      mileageDiscount = 7500 + (mileage - 30000) * 0.22; // 0.22 PLN/km - normal
+      mileageDiscount = 7500 + (mileage - 30000) * 0.22;
     } else if (mileage <= 150000) {
-      mileageDiscount = 18500 + (mileage - 80000) * 0.18; // 0.18 PLN/km - élevé
+      mileageDiscount = 18500 + (mileage - 80000) * 0.18;
     } else {
-      mileageDiscount = 31100 + (mileage - 150000) * 0.12; // 0.12 PLN/km - très élevé
+      mileageDiscount = 31100 + (mileage - 150000) * 0.12;
     }
     basePrice -= Math.round(mileageDiscount);
 
-    // Bonus/malus moteur
-    if (carData.engine === '1.4') basePrice += 5500; // Plus fiable = +5.5k
-    else if (carData.engine === '0.9') basePrice -= 4500; // TwinAir problématique = -4.5k
+    if (carData.engine === '1.4') basePrice += 5500;
+    else if (carData.engine === '0.9') basePrice -= 4500;
 
-    // Malus âge supplémentaire pour pré-2010 (rouille, électronique)
     if (year < 2010) basePrice -= (2010 - year) * 800;
 
     const priceRatio = (price / basePrice) * 100;
@@ -513,34 +500,32 @@ const Fiat500Analyzer = () => {
       score -= 20;
     }
 
-    // Budget prévisionnel réparations (détaillé par moteur/âge/kilométrage)
     let repairBudget = 0;
     const carAge = 2024 - year;
 
-    // Base budgets révisés par moteur
     const budgetByEngine = {
       '1.2': { base: 3000, perYear: 300, perKm100k: 500 },
-      '0.9': { base: 9000, perYear: 1000, perKm100k: 1200 }, // TwinAir beaucoup plus cher
-      '1.4': { base: 2800, perYear: 400, perKm100k: 600 }
+      '0.9': { base: 9000, perYear: 1000, perKm100k: 1200 },
+      '1.4': { base: 2800, perYear: 400, perKm100k: 600 },
+      '1.2-Dualogic': { base: 6500, perYear: 600, perKm100k: 800 },
+      '1.2-TCG': { base: 5500, perYear: 500, perKm100k: 700 },
+      '1.3-Diesel': { base: 5200, perYear: 450, perKm100k: 650 }
     };
 
     const engineBudget = budgetByEngine[carData.engine as keyof typeof budgetByEngine];
     repairBudget = engineBudget.base;
-    repairBudget += Math.max(0, carAge - 3) * engineBudget.perYear; // Après 3 ans, dépenses augmentent
+    repairBudget += Math.max(0, carAge - 3) * engineBudget.perYear;
     repairBudget += (mileage / 100000) * engineBudget.perKm100k;
 
-    // Ajustement courroie si non changée
     if (!carData.beltChanged && mileage > 60000) {
-      if (carData.engine === '0.9') repairBudget += 4000; // TwinAir = cauchemar
+      if (carData.engine === '0.9') repairBudget += 4000;
       else if (carData.engine === '1.2') repairBudget += 2800;
       else repairBudget += 2500;
     }
 
-    // Ajout rouille/électronique pour anciens modèles
     if (year < 2015) repairBudget += Math.max(0, (2015 - year) * 400);
 
-    // Climato/petit entretien (tous moteurs)
-    repairBudget += 600; // Moyenne climatisation recharge + minor stuff
+    repairBudget += 600;
 
     const finalScore = Math.max(0, Math.min(100, score));
     const verdict = finalScore >= 70 ? t.verdict.good : 
@@ -559,7 +544,6 @@ const Fiat500Analyzer = () => {
     });
   };
 
-  // Exemples d'annonces à chercher (simulé)
   const generateSearchLinks = () => {
     const links = language === 'fr' ? [
       { site: 'Otomoto.pl', url: 'https://www.otomoto.pl/osobowe/fiat/500?search%5Bfilter_float_mileage%3Ato%5D=100000', desc: 'Toutes Fiat 500 < 100k km' },
@@ -583,7 +567,6 @@ const Fiat500Analyzer = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Language Selector */}
         <div className="flex justify-end mb-4 gap-2">
           <button
             onClick={() => setLanguage('fr')}
@@ -622,7 +605,6 @@ const Fiat500Analyzer = () => {
           
           <p className="text-gray-600 mb-6">{t.subtitle}</p>
 
-          {/* Formulaire */}
           <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">{t.price}</label>
@@ -674,7 +656,6 @@ const Fiat500Analyzer = () => {
             </div>
           </div>
 
-          {/* Checkboxes */}
           <div className="space-y-3 mb-6">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
@@ -707,7 +688,6 @@ const Fiat500Analyzer = () => {
             </label>
           </div>
 
-          {/* Boutons */}
           <div className="flex gap-4">
             <button
               onClick={analyzeValue}
@@ -727,7 +707,6 @@ const Fiat500Analyzer = () => {
           </div>
         </div>
 
-        {/* Résultats de recherche */}
         {searchResults.length > 0 && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -756,12 +735,10 @@ const Fiat500Analyzer = () => {
           </div>
         )}
 
-        {/* Analyse */}
         {analysis && (
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">{t.analysisTitle}</h2>
 
-            {/* Score global */}
             <div className="mb-6 p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-lg font-semibold">{t.globalScore}</span>
@@ -776,14 +753,12 @@ const Fiat500Analyzer = () => {
               <p className="mt-3 text-xl font-bold">{analysis.verdict}</p>
             </div>
 
-            {/* Prix */}
             <div className="mb-6 p-5 bg-blue-50 rounded-lg border-2 border-blue-200">
               <h3 className="font-bold text-lg mb-2 text-blue-900">{t.priceAnalysis}</h3>
               <p className="text-blue-800 font-semibold mb-2">{analysis.priceAnalysis}</p>
               <p className="text-gray-700">{t.estimatedPrice} <span className="font-bold text-indigo-600">{analysis.estimatedPrice.toLocaleString()} PLN</span></p>
             </div>
 
-            {/* Infos moteur */}
             <div className="mb-6 p-5 bg-gray-50 rounded-lg">
               <h3 className="font-bold text-lg mb-3 text-gray-800">{t.motorTitle} {analysis.engine.name}</h3>
               <div className="mb-3">
@@ -824,7 +799,6 @@ const Fiat500Analyzer = () => {
               </div>
             </div>
 
-            {/* Avertissements */}
             {analysis.warnings.length > 0 && (
               <div className="mb-6 p-5 bg-red-50 rounded-lg border-2 border-red-200">
                 <h3 className="font-bold text-lg mb-3 text-red-900 flex items-center gap-2">
@@ -839,7 +813,6 @@ const Fiat500Analyzer = () => {
               </div>
             )}
 
-            {/* Recommandations */}
             {analysis.recommendations.length > 0 && (
               <div className="mb-6 p-5 bg-green-50 rounded-lg border-2 border-green-200">
                 <h3 className="font-bold text-lg mb-3 text-green-900 flex items-center gap-2">
@@ -854,7 +827,6 @@ const Fiat500Analyzer = () => {
               </div>
             )}
 
-            {/* Budget réparations */}
             <div className="p-5 bg-yellow-50 rounded-lg border-2 border-yellow-200">
               <h3 className="font-bold text-lg mb-2 text-yellow-900">{t.repairBudget}</h3>
               <p className="text-yellow-800">
@@ -867,7 +839,6 @@ const Fiat500Analyzer = () => {
           </div>
         )}
 
-        {/* Guide checklist */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mt-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">✅ {t.checklistTitle}</h2>
           <div className="grid md:grid-cols-2 gap-6">
